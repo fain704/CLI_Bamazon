@@ -24,7 +24,6 @@ connection.connect(function(err) {
 function showStock() {
   connection.query("SELECT * FROM products", function(err, res) {
     if (err) throw err;
-    // console.log(res);
     console.log('Welcome to Bamazon, we have the following items in stock');
 
     for (let i = 0; i < res.length; i++){
@@ -35,12 +34,11 @@ function showStock() {
 
     console.log('--------------------------------------------------------------');
 
-    purchase();
-    // connection.end();
+    prompt();
   });
 } 
 
-function purchase() {
+function prompt() {
 
   inquirer.prompt([{
       name: "id",
@@ -52,14 +50,46 @@ function purchase() {
       type: "input",
       message: "How many of this item would you like to purchase?"
   }]).then(function(answer) {
-    // console.log(answer);
-    // console.log(parseInt(answer.id));
+    var quantity = parseInt(answer.quantity);
+    var id = parseInt(answer.id);
+    readProducts(id, quantity);
   });
-  // connection.end();
 };
 
-//read from database for selected ID and quantity
-//if quantity available is less than quantity selected console.log insufficient quantity
-//if quantity available is less than quantity selected update table with available - selected
-//console.log cost
+
+function readProducts(id, quantity) {
+  connection.query(`SELECT * FROM products WHERE item_id = ${id}`, function(err, res) {
+    if (err) throw err;
+
+    if (quantity > res[0].quantity){
+      console.log('There is insufficient quantities in stock!!!');
+      connection.end();
+    } else {
+      var cost = res[0].cost * quantity;
+      quantity = res[0].quantity - quantity;
+      updateProduct(id, quantity, cost);
+    }
+  });
+}
+
+function updateProduct(id, quantity, cost) {
+  var query = connection.query(
+    "UPDATE products SET ? WHERE ?",
+    [
+      {
+        quantity: quantity
+      },
+      {
+        item_id: id
+      }
+    ],
+    function(err, res) {
+      if (err) throw err;
+        console.log('Your order was successfully processed, you can expect to recieve it never');
+        console.log('Total cost: $', cost);
+        console.log('---------------------------------------------------');
+        showStock();
+    }
+  );
+}
 
